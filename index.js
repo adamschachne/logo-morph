@@ -1,6 +1,8 @@
 var svg = d3.select("svg");
 var current = 0;
 var paths = svg.selectAll("path")
+var animating = false;
+
 var microsoft = [
   "M-2-2h245v245h-245z", // "#F25022"
   "M269-2h245v245h-245z", // "#7FBA00"
@@ -28,89 +30,68 @@ var interpolators = [
   },
   function teslaToApple(d, i) {
     if (i < 2) {
-      return flubber.interpolate(tesla[0], apple, { single: true });
+      return flubber.interpolate(tesla[0], apple[1], { single: true });
     }
-    return flubber.interpolate(tesla[1], apple, { single: true })
+    return flubber.interpolate(tesla[1], apple[0], { single: true })
+  }
+]
+
+var interpolatorsReverse = [
+  function teslaToMicrosoft(d, i) {
+    if (i < 2) {
+      return flubber.separate(tesla[0], microsoft.slice(0, 2), { single: true })
+    }
+    return flubber.separate(tesla[1], microsoft.slice(2), { single: true })
+  },
+  function appleToTesla(d, i) {
+    if (i < 2) {
+      return flubber.interpolate(apple[1], tesla[0], { single: true });
+    }
+    return flubber.interpolate(apple[0], tesla[1], { single: true });
   }
 ]
 
 var paths = paths.data(microsoft)
   .enter()
   .append("path")
-  .attr('d', function (data) { return data[0] })
-  // .attr('fill', function (data) { return data[1] })
+  .attr('d', function (data) { return data })
   .attr('fill', "white")
 
-
-function morph() {
+function morph(direction) {
+  if (animating) {
+    return;
+  }
+  var tweenFunction;
+  var curr = current; // save current
+  if (direction == "right") {
+    if (curr == companies.length - 1) {
+      return;
+    }
+    tweenFunction = interpolators[curr];
+    current++;
+  } else if (direction == "left") {
+    if (curr == 0) {
+      return;
+    }
+    tweenFunction = interpolatorsReverse[curr - 1];
+    current--;
+  }
+  animating = true;
   paths
-    // microsoft -> tesla
-    .transition()
-    .duration(300)
-    // .attrTween("fill", function (d, i) {
-    //   return function (t) {
-    //     var func = d3.interpolateRgb(d3.color(microsoft[i][1]).rgb(), d3.color(tesla[1][1]).rgb());
-    //     return d3.color(func(t)).hex();
-    //   }
-    // })
-    .delay(1000)
     .transition()
     .duration(500)
-    .attrTween("d", function (d, i) {
-      if (i < 2) {
-        return microsoftToTesla[1]
-      }
-      return microsoftToTesla[0]
-    })
-
-    // tesla -> microsoft
-    .transition()
-    .duration(2000)
-    // .attrTween("fill", function (d, i) {
-    //   return function (t) {
-    //     if (i < 2) {
-    //       var func = d3.interpolateRgb(d3.color(tesla[0][1]).rgb(), d3.color(microsoft[i][1]).rgb());
-    //       return d3.color(func(t)).hex();
-    //     }
-    //     var func = d3.interpolateRgb(d3.color(tesla[0][1]).rgb(), d3.color(microsoft[i][1]).rgb());
-    //     return d3.color(func(t)).hex();
-    //   }
-    // })
-    .attrTween("d", function (d, i) {
-      // if (i < 2) {
-      //   return flubber.interpolate(tesla[0][0], microsoft[i][0], { single: true });
-      // }
-      // return flubber.interpolate(tesla[1][0], microsoft[i][0], { single: true });
-      if (i < 2) {
-        return function (t) {
-          return microsoftToTesla[1](1 - t);
-        }
-      }
-      return function (t) {
-        return microsoftToTesla[0](1 - t);
-      }
-    })
-    .delay(1000)
-
-    // tesla->apple
-    .transition()
-    .duration(1000)
-    .attrTween("d", function (d, i) {
-      if (i == 0) {
-        return teslaToApple[0];
-      }
-      return teslaToApple[1];
-    })
-    .delay(500)
-    .on('end', morph);
+    .attrTween("d", tweenFunction)
+    .on('end', function () {
+      animating = false;
+    });
 }
 
 d3.select("body")
   .on("keyup", function () {
     var code = d3.event.keyCode;
     if (code == 39) { // right arrow
-      moveRight();
+      morph("right");
     } else if (code == 37) { // left arrow
-      moveLeft();
+      morph("left");
     }
   })
