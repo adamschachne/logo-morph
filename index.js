@@ -1,7 +1,17 @@
 var svg = d3.select("svg");
-var current = 0;
 var paths = svg.selectAll("path")
 var animating = false;
+
+var valve = [
+  // "M256 2C124 2 15 105 5 236L140 292C151 284 165 279 180 279 181 279 182 279 184 279L244 192V191C244 138 286 95 339 95 391 95 433 138 433 191 433 243 391 286 339 286 338 286 337 286 336 286L251 348C251 349 251 350 251 351 251 391 219 423 180 423 145 423 117 398 110 365L14 325C44 432 140 510 256 510 394 510 507 396 507 256 507 116 394 2 256 2Z",
+  // "M163 387 132 374C137 386 147 395 159 401 186 412 218 399 229 372 235 358 235 344 229 331 224 317 213 307 200 301 187 296 173 296 161 301L193 314C213 322 222 346 214 366 206 386 183 396 163 387Z",
+  // "M402 191a64 64 0 1 0 0 1Zm-16 0a48 48 0 1 1 0-1Z"
+
+  "M256 2C124 2 15 105 5 236L140 292C151 284 165 279 180 279 181 279 182 279 184 279L244 192V191C244 138 286 95 339 95 391 95 433 138 433 191 433 243 391 286 339 286 338 286 337 286 336 286L251 348C251 349 251 350 251 351 251 391 219 423 180 423 145 423 117 398 110 365L14 325C44 432 140 510 256 510 394 510 507 396 507 256 507 116 394 2 256 2Z M163 387 132 374C137 386 147 395 159 401 186 412 218 399 229 372 235 358 235 344 229 331 224 317 213 307 200 301 187 296 173 296 161 301L193 314C213 322 222 346 214 366 206 386 183 396 163 387Z M402 191a64 64 0 1 0 0 1Zm-16 0a48 48 0 1 1 0-1Z",
+]
+var facebook = [
+  "M26 1C16 4 4 15 1 26 0 32 0 480 1 485 4 495 11 503 21 508L26 511 143 511 260 511 260 401 260 291 215 290 215 253C215 223 215 215 215 215 216 214 226 214 238 214L260 214 260 185C261 157 261 148 263 139 265 128 266 123 271 113 279 94 299 79 323 74 338 70 342 70 383 70L420 70 420 108 420 146H399C352 146 351 147 352 197L352 214 385 214C421 214 421 214 421 217 420 219 420 223 418 240 418 243 417 249 417 253 416 256 416 262 415 266 414 283 413 285 413 288L412 291H351V511L418 511 485 511 491 508C498 504 504 498 508 491L511 485V26L508 21C504 13 498 7 491 4L485 1 257 1C121 1 28 1 26 1",
+]
 
 var microsoft = [
   "M-2-2h245v245h-245z", // "#F25022"
@@ -20,11 +30,12 @@ var apple = [
   "M362.321 12.517c0 25.254-9.226 48.834-27.617 70.66-22.193 25.946-49.037 40.939-78.147 38.573-.371-3.03-.586-6.218-.586-9.569 0-24.244 10.554-50.19 29.297-71.405 9.357-10.741 21.258-19.672 35.69-26.797C335.359 6.961 348.98 3.079 361.791 4.657Z"
 ];
 
-var facebook = [
-  "M26 1C16 4 4 15 1 26 0 32 0 480 1 485 4 495 11 503 21 508L26 511 143 511 260 511 260 401 260 291 215 290 215 253C215 223 215 215 215 215 216 214 226 214 238 214L260 214 260 185C261 157 261 148 263 139 265 128 266 123 271 113 279 94 299 79 323 74 338 70 342 70 383 70L420 70 420 108 420 146H399C352 146 351 147 352 197L352 214 385 214C421 214 421 214 421 217 420 219 420 223 418 240 418 243 417 249 417 253 416 256 416 262 415 266 414 283 413 285 413 288L412 291H351V511L418 511 485 511 491 508C498 504 504 498 508 491L511 485V26L508 21C504 13 498 7 491 4L485 1 257 1C121 1 28 1 26 1"
-]
-
-var appleToFB = flubber.combine(apple, facebook[0], { single: true, maxSegmentLength: 10 })
+// var vToF = flubber.combine(valve.slice(0, 2), facebook[0], { single: true });
+var vToF = flubber.interpolateAll(valve, facebook, { single: true });
+// var fToV = flubber.separate(facebook[0], valve, { single: true });
+var fToV = flubber.interpolateAll(facebook, valve, { single: true });
+var fToM = flubber.separate(facebook[0], microsoft, { single: true });
+var mToF = flubber.combine(microsoft, facebook[0], { single: true })
 var mToT1 = flubber.combine(microsoft.slice(2), tesla[1], { single: true });
 var mToT2 = flubber.combine(microsoft.slice(0, 2), tesla[0], { single: true });
 var tToA1 = flubber.interpolate(tesla[0], apple[1], { single: true });
@@ -33,10 +44,16 @@ var tToM1 = flubber.separate(tesla[0], microsoft.slice(0, 2), { single: true });
 var tToM2 = flubber.separate(tesla[1], microsoft.slice(2), { single: true });
 var aToT1 = flubber.interpolate(apple[1], tesla[0], { single: true });
 var aToT2 = flubber.interpolate(apple[0], tesla[1], { single: true });
-var fToA = flubber.separate(facebook[0], apple, { single: true });
 
-var companies = [microsoft, tesla, apple, facebook]
+var current = 2;
+var companies = [valve, facebook, microsoft, tesla, apple]
 var interpolators = [
+  function valveToFacebook(d, i) {
+    return vToF;
+  },
+  function facebookToMicrosoft(d, i) {
+    return fToM;
+  },
   function microsoftToTesla(d, i) {
     if (i < 2) {
       return mToT1;
@@ -48,13 +65,16 @@ var interpolators = [
       return tToA1;
     }
     return tToA2;
-  },
-  function appleToFacebook(d, i) {
-    return appleToFB;
   }
 ]
 
 var interpolatorsReverse = [
+  function facebookToValve(d, i) {
+    return fToV;
+  },
+  function microsoftToFacebook(d, i) {
+    return mToF;
+  },
   function teslaToMicrosoft(d, i) {
     if (i < 2) {
       return tToM1;
@@ -66,13 +86,8 @@ var interpolatorsReverse = [
       return aToT1;
     }
     return aToT2;
-  },
-  function facebookToApple(d, i) {
-    return fToA;
   }
 ]
-
-current = 0;
 
 var paths = paths.data(companies[current])
   .enter()
@@ -85,24 +100,21 @@ function morph(direction) {
     return;
   }
   var tweenFunction;
-  var curr = current; // save current
   if (direction == "right") {
-    if (curr == companies.length - 1) {
+    if (current == companies.length - 1) {
       return;
     }
-    tweenFunction = interpolators[curr];
-    current++;
+    tweenFunction = interpolators[current++];
   } else if (direction == "left") {
-    if (curr == 0) {
+    if (current == 0) {
       return;
     }
-    tweenFunction = interpolatorsReverse[curr - 1];
-    current--;
+    tweenFunction = interpolatorsReverse[--current];
   }
   animating = true;
   paths
     .transition()
-    .duration(500)
+    .duration(300)
     .attrTween("d", tweenFunction)
     .on('end', function () {
       animating = false;
